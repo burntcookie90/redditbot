@@ -47,8 +47,8 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
   fun login() = RedditLoginManager.login()
 
   private fun beginPollingForPosts() {
-    if(redditPollSubscription != null && !redditPollSubscription.isUnsubscribed){
-      redditPollSubscription.unsubscribe()
+    redditPollSubscription?.let {
+      it.unsubscribe()
       redditPollSubscription = null
     }
     redditPollSubscription = Observable.interval(POST_WINDOW, TimeUnit.MILLISECONDS)
@@ -159,7 +159,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             }
             .map(payloadToJson())
             .map(getWebHookUrlComponents())
-            .flatMap(respondeToSlackMessage())
+            .flatMap(respondToSlackMessage())
             .subscribe { println("Done!") }
   }
 
@@ -178,13 +178,13 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             }
             .map(payloadToJson())
             .map(getWebHookUrlComponents())
-            .flatMap(respondeToSlackMessage())
+            .flatMap(respondToSlackMessage())
             .subscribe {
               println("Posted to slack!")
             }
   }
 
-  private fun respondeToSlackMessage() : (Pair<SlackWebhookUrlComponents, String>) -> Observable<Unit> {
+  private fun respondToSlackMessage() : (Pair<SlackWebhookUrlComponents, String>) -> Observable<Unit> {
     return {
       slackService.respondToMessage(it.first.id1,
                                     it.first.id2,
