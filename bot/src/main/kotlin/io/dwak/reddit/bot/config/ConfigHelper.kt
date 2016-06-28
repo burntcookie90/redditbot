@@ -11,9 +11,16 @@ class ConfigHelper @Inject constructor(private val moshi : Moshi) {
   var slackConfig : SlackConfig
 
   init {
-    val redditConfigFile = File(javaClass.classLoader.getResource("reddit-config.json").file)
-    val slackConfigFile = File(javaClass.classLoader.getResource("slack-config.json").file)
-    if (redditConfigFile.exists() && slackConfigFile.exists()) {
+    val redditConfigResource = javaClass.classLoader.getResource("reddit-config.json")
+    val slackConfigResource = javaClass.classLoader.getResource("slack-config.json")
+    var redditConfigFile : File? = null
+    var slackConfigFile : File? = null
+    if (redditConfigResource != null && slackConfigResource != null) {
+      redditConfigFile = File(redditConfigResource.file)
+      slackConfigFile = File(slackConfigResource.file)
+    }
+    if (redditConfigFile != null && redditConfigFile.exists()
+        && slackConfigFile != null && slackConfigFile.exists()) {
       val redditBuffer = Buffer().readFrom(redditConfigFile.inputStream())
       redditConfig = moshi.adapter(RedditConfig::class.java).fromJson(JsonReader.of(redditBuffer))
 
