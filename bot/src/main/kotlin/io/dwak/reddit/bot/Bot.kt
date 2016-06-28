@@ -11,6 +11,7 @@ import io.dwak.reddit.bot.network.SlackLoginManager
 import io.dwak.reddit.bot.network.reddit.RedditService
 import io.dwak.reddit.bot.network.slack.SlackService
 import rx.Observable
+import rx.Subscription
 import java.net.URLDecoder
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -30,6 +31,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
   private val postedIds : LinkedHashMap<String, T3Data>
 
   private var lastCheckedTime : Long = 0L
+  private var redditPollSubscription : Subscription? = null
 
 
   init {
@@ -44,8 +46,12 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
 
   fun login() = RedditLoginManager.login()
 
-  fun beginPollingForPosts() {
-    Observable.interval(POST_WINDOW, TimeUnit.MILLISECONDS)
+  private fun beginPollingForPosts() {
+    if(redditPollSubscription != null && !redditPollSubscription.isUnsubscribed){
+      redditPollSubscription.unsubscribe()
+      redditPollSubscription = null
+    }
+    redditPollSubscription = Observable.interval(POST_WINDOW, TimeUnit.MILLISECONDS)
             .flatMap {
               redditService.unmoderated(RedditLoginManager.redditConfig.subreddit)
             }
@@ -153,7 +159,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             }
             .map(payloadToJson())
             .map(getWebHookUrlComponents())
-            .flatMap(responseToSlackMessage())
+            .flatMap(respondeToSlackMessage())
             .subscribe { println("Done!") }
   }
 
@@ -172,13 +178,13 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             }
             .map(payloadToJson())
             .map(getWebHookUrlComponents())
-            .flatMap(responseToSlackMessage())
+            .flatMap(respondeToSlackMessage())
             .subscribe {
               println("Posted to slack!")
             }
   }
 
-  private fun responseToSlackMessage() : (Pair<SlackWebhookUrlComponents, String>) -> Observable<Unit> {
+  private fun respondeToSlackMessage() : (Pair<SlackWebhookUrlComponents, String>) -> Observable<Unit> {
     return {
       slackService.respondToMessage(it.first.id1,
                                     it.first.id2,
