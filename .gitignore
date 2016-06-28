@@ -1,0 +1,6 @@
+.idea/
+*.iml
+bot/build/
+.gradle/
+bot/src/main/resources/reddit-config.json
+bot/src/main/resources/slack-config.json

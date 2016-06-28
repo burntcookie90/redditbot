@@ -1,0 +1,49 @@
+group 'io.dwak'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'kotlin'
+apply plugin: 'application'
+
+mainClassName = "io.dwak.reddit.bot.MainKt"
+
+defaultTasks 'run'
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib:1.0.1"
+    compile 'com.squareup.retrofit2:retrofit:2.1.0'
+    compile 'com.squareup.retrofit2:adapter-rxjava:2.1.0'
+    compile 'com.squareup.retrofit2:converter-moshi:2.1.0'
+    compile 'com.squareup.moshi:moshi:1.2.0'
+    compile 'com.squareup.okhttp3:okhttp:3.3.1'
+    compile 'com.squareup.okhttp3:logging-interceptor:3.3.1'
+    compile 'com.squareup.dagger:dagger:1.2.5'
+    kapt 'com.squareup.dagger:dagger-compiler:1.2.5'
+    compile 'io.reactivex:rxjava:1.1.6'
+    compile 'com.spotify:apollo-http-service:1.1.0'
+    compile 'com.spotify:apollo-extra:1.1.0'
+    runtime "ch.qos.logback:logback-classic:1.1.3"
+}
+
+sourceSets {
+    main.kotlin.srcDirs += "src/main/kotlin"
+}
+
+jar {
+    manifest.attributes('Main-Class': 'io.dwak.reddit.bot.MainKt')
+}
+
+//noinspection GrUnresolvedAccess
+task copyToLib(type: Copy) {
+    into "$buildDir/lib"
+    from(configurations.compile)
+}
+
+task stage {
+    dependsOn build
+}
+
+stage.dependsOn(copyToLib)
+
+kapt {
+    generateStubs = true
+}

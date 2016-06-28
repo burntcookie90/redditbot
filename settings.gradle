@@ -1,0 +1,3 @@
+rootProject.name = 'reddit-slack-io.dwak.reddit.bot'
+include ':bot'
+
