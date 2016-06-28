@@ -45,12 +45,10 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
   fun login() = RedditLoginManager.login()
 
   fun beginPollingForPosts() {
-    Observable
-            .combineLatest(Observable.interval(POST_WINDOW, TimeUnit.MILLISECONDS),
-                           redditService.unmoderated(RedditLoginManager.redditConfig.subreddit), { interval, posts ->
-                             posts
-                           }
-            )
+    Observable.interval(POST_WINDOW, TimeUnit.MILLISECONDS)
+            .flatMap {
+              redditService.unmoderated(RedditLoginManager.redditConfig.subreddit)
+            }
             .map { it.data }
             .flatMap { Observable.from(it.children) }
             .map { it.data }
