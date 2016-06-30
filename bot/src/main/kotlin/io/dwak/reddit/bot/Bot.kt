@@ -51,7 +51,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
       it.unsubscribe()
       redditPollSubscription = null
     }
-    redditPollSubscription = Observable.interval(POST_WINDOW, TimeUnit.MILLISECONDS)
+    redditPollSubscription = Observable.interval(0, POST_WINDOW, TimeUnit.MILLISECONDS)
             .flatMap {
               redditService.unmoderated(RedditLoginManager.redditConfig.subreddit)
             }
