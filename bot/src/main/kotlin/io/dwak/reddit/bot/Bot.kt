@@ -59,7 +59,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             .flatMap { Observable.from(it.children) }
             .map { it.data }
             .filter { it.created_utc > lastCheckedTime / 1000 }
-            .filter { postedIds.containsKey(it.id) }
+            .filter { !postedIds.containsKey(it.id) }
             .doOnNext { postedIds.put(it.id, it) }
             .map {
               var postBody : String? = null
