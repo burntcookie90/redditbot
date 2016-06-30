@@ -13,6 +13,7 @@ import io.dwak.reddit.bot.network.slack.SlackService
 import rx.Observable
 import rx.Subscription
 import java.net.URLDecoder
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.*
@@ -24,18 +25,18 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
                               private val lazySlackService : dagger.Lazy<SlackService>,
                               private val moshi : Moshi,
                               private val cannedResponses : CannedResponses) {
-  private val POST_WINDOW = TimeUnit.MINUTES.toMillis(10)
+  private val POST_WINDOW = 10L
   private val CACHE_SIZE = 10
   private val redditService by lazy { lazyRedditService.get() }
   private val slackService by lazy { lazySlackService.get() }
   private val postedIds : LinkedHashMap<String, T3Data>
 
-  private var lastCheckedTime : Long = 0L
+  private var lastCheckedTime : ZonedDateTime
   private var redditPollSubscription : Subscription? = null
 
 
   init {
-    lastCheckedTime = Date.from(ZonedDateTime.now(ZoneOffset.UTC).toInstant()).time - POST_WINDOW
+    lastCheckedTime = ZonedDateTime.now(ZoneOffset.UTC).minusMinutes(POST_WINDOW)
 
     postedIds = object : LinkedHashMap<String, T3Data>(CACHE_SIZE) {
       override fun removeEldestEntry(eldest : MutableMap.MutableEntry<String, T3Data>?) : Boolean {
@@ -51,14 +52,18 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
       it.unsubscribe()
       redditPollSubscription = null
     }
-    redditPollSubscription = Observable.interval(0, POST_WINDOW, TimeUnit.MILLISECONDS)
+    redditPollSubscription = Observable.interval(0, POST_WINDOW, TimeUnit.MINUTES)
             .flatMap {
               redditService.unmoderated(RedditLoginManager.redditConfig.subreddit)
             }
             .map { it.data }
             .flatMap { Observable.from(it.children) }
             .map { it.data }
-            .filter { it.created_utc > lastCheckedTime / 1000 }
+            .filter {
+              val createdUtc = ZonedDateTime.of(LocalDateTime.ofEpochSecond(it.created_utc, 0, ZoneOffset.UTC),
+                                                ZoneOffset.UTC)
+              createdUtc.isAfter(lastCheckedTime)
+            }
             .filter { !postedIds.containsKey(it.id) }
             .doOnNext { postedIds.put(it.id, it) }
             .map {
@@ -87,7 +92,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             .map { moshi.adapter(WebHookPayload::class.java).toJson(it) }
             .flatMap { slackService.postToWebHook(payload = it) }
             .subscribe {
-              lastCheckedTime = Date.from(ZonedDateTime.now(ZoneOffset.UTC).toInstant()).time
+              lastCheckedTime = ZonedDateTime.now(ZoneOffset.UTC)
             }
   }
 
