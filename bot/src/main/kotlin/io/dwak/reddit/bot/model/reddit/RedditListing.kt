@@ -18,7 +18,6 @@ data class ChildrenData(val kind : Kind,
 
 data class T3Data(
         val domain : String?,
-        val banned_by : Boolean?,
         val subreddit : String?,
         val selftext_html : String?,
         val selftext : String?,
