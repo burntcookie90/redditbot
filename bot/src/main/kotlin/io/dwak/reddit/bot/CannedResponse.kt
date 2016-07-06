@@ -21,9 +21,9 @@ class CannedResponses @Inject constructor() {
           Response("Wiki",
                    "Removed because relevant information can be found in the /r/androiddev " +
                    "[wiki](https://www.reddit.com/r/androiddev/wiki/index))"))
-      put("other",
-          Response("Other",
-                   ""))
+      put("spam",
+          Response("Spam",
+                   "Removed as spam"))
     }
   }
 }

@@ -140,20 +140,22 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             }
             .take(1)
             .map {
-              Pair(cannedResponses.responses[it.actions[0].value], it)
+              Pair(cannedResponses.responses[it.actions[0].value]!!, it)
             }
             .flatMap {
-              responseSlackMessagePayloadPair : Pair<Response?, SlackMessagePayload> ->
+              responseSlackMessagePayloadPair : Pair<Response, SlackMessagePayload> ->
               val fullName = "t3_${responseSlackMessagePayloadPair.second.callbackId}"
-              redditService.removePost(fullName, false)
-                      .flatMap {
-                        redditService.postComment(thingId = fullName,
-                                                  text = responseSlackMessagePayloadPair.first?.messageWithFooter!!)
-                      }
-                      .flatMap { redditService.distinguish(id = it.json.data.things[0].data.name) }
-                      .map {
-                        responseSlackMessagePayloadPair.second
-                      }
+              val isSpam = responseSlackMessagePayloadPair.first.displayName == "Spam"
+              val removePostObservable = redditService.removePost(fullName, isSpam)
+              if (!isSpam) {
+                removePostObservable.flatMap {
+                  redditService.postComment(thingId = fullName,
+                                            text = responseSlackMessagePayloadPair.first.messageWithFooter)
+                }.flatMap { redditService.distinguish(id = it.json.data.things[0].data.name) }
+              }
+              removePostObservable.map {
+                responseSlackMessagePayloadPair.second
+              }
             }
             .map {
               val originalMessage = it.originalMessage
