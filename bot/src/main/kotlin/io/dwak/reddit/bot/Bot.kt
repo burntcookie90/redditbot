@@ -148,7 +148,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
               redditService.removePost(fullName, false)
                       .flatMap {
                         redditService.postComment(thingId = fullName,
-                                                  text = responseSlackMessagePayloadPair.first?.message!!)
+                                                  text = responseSlackMessagePayloadPair.first?.messageWithFooter!!)
                       }
                       .flatMap { redditService.distinguish(id = it.json.data.things[0].data.name) }
                       .map {
