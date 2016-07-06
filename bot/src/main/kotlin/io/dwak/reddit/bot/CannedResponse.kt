@@ -29,6 +29,6 @@ class CannedResponses @Inject constructor() {
 }
 
 val Response.messageWithFooter: String
-  get() = message + "\n\nNote: this is a bot, please direct all messages to the moderators of " +
-          "/r/${RedditLoginManager.redditConfig.subreddit} via " +
-          "[message](https://www.reddit.com/message/compose?to=%2Fr%2F${RedditLoginManager.redditConfig.subreddit})"
+  get() = message + "\n\nBeep. Boop. I am not human and will not respond to messages. Please file all complaints to" +
+          " /r/${RedditLoginManager.redditConfig.subreddit} via" +
+          " [modmail](https://www.reddit.com/message/compose?to=%2Fr%2F${RedditLoginManager.redditConfig.subreddit})"
