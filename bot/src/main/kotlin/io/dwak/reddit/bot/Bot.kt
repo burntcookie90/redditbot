@@ -147,23 +147,34 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
               val fullName = "t3_${responseSlackMessagePayloadPair.second.callbackId}"
               val isSpam = responseSlackMessagePayloadPair.first.displayName == "Spam"
               val removePostObservable = redditService.removePost(fullName, isSpam)
-              if (!isSpam) {
-                removePostObservable.flatMap {
-                  redditService.postComment(thingId = fullName,
-                                            text = responseSlackMessagePayloadPair.first.messageWithFooter)
-                }.flatMap { redditService.distinguish(id = it.json.data.things[0].data.name) }
+              if (isSpam) {
+                removePostObservable.map {
+                  responseSlackMessagePayloadPair
+                }
               }
-              removePostObservable.map {
-                responseSlackMessagePayloadPair.second
+              else {
+                removePostObservable
+                        .flatMap {
+                          redditService.postComment(thingId = fullName,
+                                                    text = responseSlackMessagePayloadPair.first.messageWithFooter)
+                        }
+                        .flatMap {
+                          redditService.distinguish(id = it.json.data.things[0].data.name)
+                        }
+                        .map {
+                          responseSlackMessagePayloadPair
+                        }
               }
             }
             .map {
-              val originalMessage = it.originalMessage
-              val newMessage = originalMessage.copy(attachments = listOf(WebHookPayloadAttachment(text = "Removed by ${it.user.name}!",
-                                                                                                  fallback = "Removed!",
-                                                                                                  callback_id = it.callbackId,
-                                                                                                  actions = emptyList())))
-              Pair(it.responseUrl, newMessage)
+              val originalMessage = it.second.originalMessage
+              val newMessage = originalMessage.copy(attachments = listOf(
+                      WebHookPayloadAttachment(text = "${originalMessage.attachments[0].text}" +
+                                                      "\nRemoved by ${it.second.user.name} for ${it.first.displayName}!",
+                                               fallback = "Removed!",
+                                               callback_id = it.second.callbackId,
+                                               actions = emptyList())))
+              Pair(it.second.responseUrl, newMessage)
             }
             .map(payloadToJson())
             .map(getWebHookUrlComponents())
