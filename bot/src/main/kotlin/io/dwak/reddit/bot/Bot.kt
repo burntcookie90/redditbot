@@ -159,7 +159,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             }
             .map {
               val originalMessage = it.originalMessage
-              val newMessage = originalMessage.copy(attachments = listOf(WebHookPayloadAttachment(text = "Removed!",
+              val newMessage = originalMessage.copy(attachments = listOf(WebHookPayloadAttachment(text = "Removed by ${it.user.name}!",
                                                                                                   fallback = "Removed!",
                                                                                                   callback_id = it.callbackId,
                                                                                                   actions = emptyList())))
