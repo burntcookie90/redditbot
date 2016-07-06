@@ -77,17 +77,18 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
                 title = "*SUSPICIOUS POST*\n $title"
               }
               WebHookPayload(title,
-                             listOf(WebHookPayloadAttachment("Author: ${it.author}" +
-                                                             "\n<https://www.reddit.com${it.permalink}|Post Link>" +
-                                                             "\nID: ${it.id}" +
-                                                             "\nPost Body: ${postBody ?: "Link Post"}",
-                                                             "can't remove",
-                                                             it.id,
-                                                             "default",
-                                                             listOf(WebHookPayloadAction("remove",
-                                                                                         "Remove Post",
-                                                                                         "button",
-                                                                                         "remove")))))
+                             listOf(WebHookPayloadAttachment(
+                                     "Author: <https://www.reddit.com/u/${it.author}|${it.author}>" +
+                                     "\n<https://www.reddit.com${it.permalink}|Post Link>" +
+                                     "\nID: ${it.id}" +
+                                     "\nPost Body: ${postBody ?: "Link Post"}",
+                                     "can't remove",
+                                     it.id,
+                                     "default",
+                                     listOf(WebHookPayloadAction("remove",
+                                                                 "Remove Post",
+                                                                 "button",
+                                                                 "remove")))))
             }
             .map { moshi.adapter(WebHookPayload::class.java).toJson(it) }
             .flatMap { slackService.postToWebHook(payload = it) }
