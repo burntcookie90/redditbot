@@ -28,7 +28,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
   companion object {
     val ACTION_FLAIR = "flair"
     val ACTION_REMOVE = "remove"
-    val POST_WINDOW = 10L
+    val POST_WINDOW = 5L
     val CACHE_SIZE = 10
     val ACTION_SELECT_FLAIR = "select-flair"
   }
