@@ -1,6 +1,7 @@
 package io.dwak.reddit.bot.network.reddit
 
 import io.dwak.reddit.bot.model.reddit.RedditCommentResponse
+import io.dwak.reddit.bot.model.reddit.RedditFlairResponse
 import io.dwak.reddit.bot.model.reddit.RedditListing
 import retrofit2.http.*
 import rx.Observable
@@ -25,4 +26,16 @@ interface RedditService {
   fun distinguish(@Field("api_type") apiType : String = "json",
                   @Field("id") id : String,
                   @Field("how") how : String = "yes") : Observable<Unit>
+
+  @FormUrlEncoded
+  @POST("{subreddit}/api/flairselector")
+  fun flairSelector(@Path("subreddit") subreddit : String,
+                    @Field("link") fullname : String) : Observable<RedditFlairResponse>
+
+  @FormUrlEncoded
+  @POST("{subreddit}/api/selectflair")
+  fun selectFlair(@Path("subreddit") subreddit : String,
+                  @Field("api_type") apiType : String = "json",
+                  @Field("flair_template_id") flairTemplateId : String,
+                  @Field("link") fullname: String) : Observable<Unit>
 }

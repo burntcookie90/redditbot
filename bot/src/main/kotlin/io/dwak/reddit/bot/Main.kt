@@ -22,7 +22,7 @@ fun main(args : Array<String>) {
 fun init(env : Environment) {
   env.routingEngine().registerAutoRoute(Route.async("GET", "/check-posts", bot.checkPosts()))
   env.routingEngine().registerAutoRoute(Route.async("GET", "/initiate-bot", bot.slackLogin()))
-  env.routingEngine().registerAutoRoute(Route.async("POST", "/slackbutton", bot.beginRemovePost()))
+  env.routingEngine().registerAutoRoute(Route.async("POST", "/slackbutton", bot.buttonPressed()))
 }
 
 

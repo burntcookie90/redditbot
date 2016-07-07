@@ -25,8 +25,14 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
                               private val lazySlackService : dagger.Lazy<SlackService>,
                               private val moshi : Moshi,
                               private val cannedResponses : CannedResponses) {
-  private val POST_WINDOW = 10L
-  private val CACHE_SIZE = 10
+  companion object {
+    val ACTION_FLAIR = "flair"
+    val ACTION_REMOVE = "remove"
+    val POST_WINDOW = 10L
+    val CACHE_SIZE = 10
+    val ACTION_SELECT_FLAIR = "select-flair"
+  }
+
   private val redditService by lazy { lazyRedditService.get() }
   private val slackService by lazy { lazySlackService.get() }
   private val postedIds : LinkedHashMap<String, T3Data>
@@ -77,18 +83,27 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
                 title = "*SUSPICIOUS POST*\n $title"
               }
               WebHookPayload(title,
-                             listOf(WebHookPayloadAttachment(
-                                     "Author: <https://www.reddit.com/u/${it.author}|${it.author}>" +
-                                     "\n<https://www.reddit.com${it.permalink}|Post Link>" +
-                                     "\nID: ${it.id}" +
-                                     "\nPost Body: ${postBody ?: "Link Post"}",
-                                     "can't remove",
-                                     it.id,
-                                     "default",
-                                     listOf(WebHookPayloadAction("remove",
-                                                                 "Remove Post",
-                                                                 "button",
-                                                                 "remove")))))
+                             listOf(
+                                     WebHookPayloadAttachment(
+                                             "Author: <https://www.reddit.com/u/${it.author}|${it.author}>" +
+                                             "\n<https://www.reddit.com${it.permalink}|Post Link>" +
+                                             "\nID: ${it.id}" +
+                                             "\nPost Body: ${postBody ?: "Link Post"}",
+                                             "can't remove",
+                                             it.id,
+                                             "default",
+                                             listOf(WebHookPayloadAction(ACTION_REMOVE,
+                                                                         "Remove",
+                                                                         "button",
+                                                                         ACTION_REMOVE),
+                                                    WebHookPayloadAction(ACTION_FLAIR,
+                                                                         "Flair",
+                                                                         "button",
+                                                                         ACTION_FLAIR)
+                                             )
+                                     )
+                             )
+              )
             }
             .map { moshi.adapter(WebHookPayload::class.java).toJson(it) }
             .flatMap { slackService.postToWebHook(payload = it) }
@@ -111,7 +126,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
     }
   }
 
-  fun beginRemovePost() : (RequestContext) -> CompletableFuture<String> {
+  fun buttonPressed() : (RequestContext) -> CompletableFuture<String> {
     return {
       completableFuture(it, { rc, cf ->
         val responsePayloadObservable = Observable.just(it.request().payload().get().utf8())
@@ -125,8 +140,11 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
                 .filter { it.token == SlackLoginManager.slackConfig.slackVerificationToken }
                 .share()
 
+        responsePayloadObservable.subscribe { println(it) }
         handleRemove(responsePayloadObservable)
         handleCannedResponse(responsePayloadObservable)
+        handleFlair(responsePayloadObservable)
+        handleApplyFlair(responsePayloadObservable)
 
         cf.complete("")
       })
@@ -183,7 +201,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
   }
 
   private fun handleRemove(responsePayloadObservable : Observable<SlackMessagePayload>) {
-    responsePayloadObservable.filter { it.actions[0].value == "remove" }
+    responsePayloadObservable.filter { it.actions[0].value == ACTION_REMOVE }
             .take(1)
             .map {
               val originalMessage = it.originalMessage
@@ -192,7 +210,8 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
               cannedResponses.responses.forEach {
                 newActionsList.add(WebHookPayloadAction(it.value.displayName, it.value.displayName, value = it.key))
               }
-              val newMessage = originalMessage.copy(attachments = listOf(originalAttachment.copy(actions = newActionsList)))
+              val newMessage = originalMessage.copy(attachments =
+                                                    listOf(originalAttachment.copy(actions = newActionsList)))
               Pair(it.responseUrl, newMessage)
             }
             .map(payloadToJson())
@@ -201,6 +220,61 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             .subscribe {
               println("Posted to slack!")
             }
+  }
+
+  private fun handleFlair(responsePayloadObservable : Observable<SlackMessagePayload>) {
+    responsePayloadObservable.filter { it.actions[0].value == ACTION_FLAIR }
+            .take(1)
+            .flatMap { slackPayload ->
+              redditService.flairSelector(RedditLoginManager.redditConfig.subreddit,
+                                          "t3_${slackPayload.callbackId}")
+                      .map { Pair(slackPayload, it) }
+            }
+            .map {
+              val slackPayload = it.first
+              val flairResponse = it.second
+              val originalMessage = slackPayload.originalMessage
+              val originalAttachment = originalMessage.attachments[0]
+              val newActionsList = arrayListOf<WebHookPayloadAction>()
+              flairResponse.choices
+                      .forEach {
+                        newActionsList.add(WebHookPayloadAction(name = it.flairTemplateId,
+                                                                text = it.flairText,
+                                                                value = ACTION_SELECT_FLAIR))
+                      }
+              val newMessage = originalMessage.copy(attachments =
+                                                    listOf(originalAttachment.copy(actions = newActionsList)))
+              Pair(slackPayload.responseUrl, newMessage)
+            }
+            .map(payloadToJson())
+            .map(getWebHookUrlComponents())
+            .flatMap(respondToSlackMessage())
+            .subscribe { println("Posted flairs to slack!") }
+  }
+
+  private fun handleApplyFlair(responsePayloadObservable : Observable<SlackMessagePayload>) {
+    responsePayloadObservable.filter { it.actions[0].value == ACTION_SELECT_FLAIR }
+            .take(1)
+            .flatMap { slackPayload ->
+              redditService.selectFlair(subreddit = RedditLoginManager.redditConfig.subreddit,
+                                        flairTemplateId = slackPayload.actions[0].name,
+                                        fullname = "t3_${slackPayload.callbackId}}")
+                      .map { slackPayload }
+            }
+            .map {
+              val originalMessage = it.originalMessage
+              val newMessage = originalMessage.copy(attachments = listOf(
+                      WebHookPayloadAttachment(text = "${originalMessage.attachments[0].text}" +
+                                                      "\nFlaired by ${it.user.name} to ${it.actions[0].text}!",
+                                               fallback = "Flaired!",
+                                               callback_id = it.callbackId,
+                                               actions = emptyList())))
+              Pair(it.responseUrl, newMessage)
+            }
+            .map(payloadToJson())
+            .map(getWebHookUrlComponents())
+            .flatMap(respondToSlackMessage())
+            .subscribe { println("Flaired!!") }
   }
 
   private fun respondToSlackMessage() : (Pair<SlackWebhookUrlComponents, String>) -> Observable<Unit> {
