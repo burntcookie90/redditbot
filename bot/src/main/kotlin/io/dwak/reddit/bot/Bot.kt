@@ -258,14 +258,15 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             .flatMap { slackPayload ->
               redditService.selectFlair(subreddit = RedditLoginManager.redditConfig.subreddit,
                                         flairTemplateId = slackPayload.actions[0].name,
-                                        fullname = "t3_${slackPayload.callbackId}}")
+                                        fullname = "t3_${slackPayload.callbackId}",
+                                        username = RedditLoginManager.redditConfig.redditUsername)
                       .map { slackPayload }
             }
             .map {
               val originalMessage = it.originalMessage
               val newMessage = originalMessage.copy(attachments = listOf(
                       WebHookPayloadAttachment(text = "${originalMessage.attachments[0].text}" +
-                                                      "\nFlaired by ${it.user.name} to ${it.actions[0].text}!",
+                                                      "\nFlaired by ${it.user.name}!",
                                                fallback = "Flaired!",
                                                callback_id = it.callbackId,
                                                actions = emptyList())))

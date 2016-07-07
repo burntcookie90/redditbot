@@ -37,5 +37,6 @@ interface RedditService {
   fun selectFlair(@Path("subreddit") subreddit : String,
                   @Field("api_type") apiType : String = "json",
                   @Field("flair_template_id") flairTemplateId : String,
-                  @Field("link") fullname: String) : Observable<Unit>
+                  @Field("link") fullname: String,
+                  @Field("name") username : String) : Observable<Unit>
 }

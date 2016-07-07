@@ -10,7 +10,6 @@ data class SlackMessagePayload(val actions : List<SlackMessagePayloadAction>,
                                val user : SlackMessagePayloadUser)
 
 data class SlackMessagePayloadAction(val name : String,
-                                     val value  : String,
-                                     val text : String)
+                                     val value  : String)
 
 data class SlackMessagePayloadUser(val id : String, val name : String)
