@@ -51,7 +51,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
     }
   }
 
-  fun login() = RedditLoginManager.login()
+  fun redditLogin() = RedditLoginManager.login()
 
   private fun beginPollingForPosts() {
     redditPollSubscription?.let {
@@ -144,7 +144,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
         handleRemove(responsePayloadObservable)
         handleCannedResponse(responsePayloadObservable)
         handleFlair(responsePayloadObservable)
-        handleApplyFlair(responsePayloadObservable)
+        handleSelectFlair(responsePayloadObservable)
 
         cf.complete("")
       })
@@ -187,8 +187,8 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             .map {
               val originalMessage = it.second.originalMessage
               val newMessage = originalMessage.copy(attachments = listOf(
-                      WebHookPayloadAttachment(text = "${originalMessage.attachments[0].text}" +
-                                                      "\nRemoved by ${it.second.user.name} for ${it.first.displayName}!",
+                      WebHookPayloadAttachment(text = "\nRemoved by ${it.second.user.name} for ${it.first.displayName}!"
+                                                      + "\n${originalMessage.attachments[0].text}",
                                                fallback = "Removed!",
                                                callback_id = it.second.callbackId,
                                                actions = emptyList())))
@@ -252,7 +252,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             .subscribe { println("Posted flairs to slack!") }
   }
 
-  private fun handleApplyFlair(responsePayloadObservable : Observable<SlackMessagePayload>) {
+  private fun handleSelectFlair(responsePayloadObservable : Observable<SlackMessagePayload>) {
     responsePayloadObservable.filter { it.actions[0].value == ACTION_SELECT_FLAIR }
             .take(1)
             .flatMap { slackPayload ->
@@ -295,7 +295,8 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
     }
   }
 
-  private fun payloadToJson() : (Pair<String, WebHookPayload>) -> Pair<String, String> = { Pair(it.first, moshi.adapter(WebHookPayload::class.java).toJson(it.second)) }
+  private fun payloadToJson() : (Pair<String, WebHookPayload>) -> Pair<String, String>
+          = { Pair(it.first, moshi.adapter(WebHookPayload::class.java).toJson(it.second)) }
 
   fun checkPosts() : (RequestContext) -> CompletableFuture<String> {
     return {

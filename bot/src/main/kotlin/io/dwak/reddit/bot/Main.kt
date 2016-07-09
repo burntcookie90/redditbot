@@ -14,7 +14,7 @@ var bot : Bot by Delegates.notNull()
 fun main(args : Array<String>) {
   OG.initialize(ObjectGraph.create(NetworkModule()))
   bot = OG.get(Bot::class.java)
-  bot.login()
+  bot.redditLogin()
 
   HttpService.boot(::init, SERVICE_NAME, args)
 }
