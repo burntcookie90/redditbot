@@ -73,10 +73,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
             .filter { !postedIds.containsKey(it.id) }
             .doOnNext { postedIds.put(it.id, it) }
             .map {
-              var postBody : String? = null
-              if (it.isSelfPost()) {
-                postBody = it.selftext
-              }
+              var postBody = if (it.isSelfPost()) it.selftext else it.url
 
               var title = "*Title*: ${it.title}"
               if (it.isSuspiciousPost()) {
@@ -88,7 +85,7 @@ class Bot @Inject constructor(private val lazyRedditService : dagger.Lazy<Reddit
                                              "Author: <https://www.reddit.com/u/${it.author}|${it.author}>" +
                                              "\n<https://www.reddit.com${it.permalink}|Post Link>" +
                                              "\nID: ${it.id}" +
-                                             "\nPost Body: ${postBody ?: "Link Post"}",
+                                             "\nPost Body: $postBody",
                                              "can't remove",
                                              it.id,
                                              "default",

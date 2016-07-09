@@ -5,8 +5,8 @@ import dagger.Module
 import dagger.Provides
 import io.dwak.reddit.bot.Bot
 import io.dwak.reddit.bot.config.ConfigHelper
-import io.dwak.reddit.bot.network.OauthInterceptor
 import io.dwak.reddit.bot.network.RedditLoginManager
+import io.dwak.reddit.bot.network.RedditOauthInterceptor
 import io.dwak.reddit.bot.network.SlackLoginManager
 import io.dwak.reddit.bot.network.adapter.reddit.KindAdapter
 import io.dwak.reddit.bot.network.adapter.slack.SlackWebhookUrlComponentAdapter
@@ -149,9 +149,9 @@ class NetworkModule {
 
   @Provides
   @Named(REDDIT_OKHTTP_BUILDER)
-  fun redditOkHttpBuilder(oauthInterceptor : OauthInterceptor) : OkHttpClient.Builder {
+  fun redditOkHttpBuilder(redditOauthInterceptor : RedditOauthInterceptor) : OkHttpClient.Builder {
     val okHttpBuilder = OkHttpClient.Builder()
-    okHttpBuilder.addInterceptor(oauthInterceptor)
+    okHttpBuilder.addInterceptor(redditOauthInterceptor)
     return okHttpBuilder
   }
 

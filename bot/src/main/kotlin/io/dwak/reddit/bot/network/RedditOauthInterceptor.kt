@@ -7,7 +7,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class OauthInterceptor @Inject constructor(): Interceptor {
+class RedditOauthInterceptor @Inject constructor(): Interceptor {
 
   @Throws(IOException::class)
   override fun intercept(chain : Interceptor.Chain) : Response {
